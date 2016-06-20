@@ -1,9 +1,9 @@
 #!/usr/bin/python
 #
-# Launchy - or how to lauch subprocesses in python
+# Launchy - or how to launch subprocesses in python
 #
 # ./launchy.py dmesg
-# ./launchy.py unbuffer dmesg        # with colors 
+# ./launchy.py unbuffer dmesg        # with colors
 # ./launchy.py unbuffer dmesg -w     # not terminating
 # ./launchy.py apt-get update -y     # no stdin yet
 # ./launchy.py ls --color /bin /bum  # with stderr
@@ -50,7 +50,7 @@ class Launchy(Thread):
 
     def __out_handler(self, line):
         print "out:", line
-    
+
     def __err_handler(self, line):
         print "err:", line
 
@@ -60,7 +60,7 @@ class Launchy(Thread):
 
     @classmethod
     def __mkpipe(self):
-        r, w = pipe() 
+        r, w = pipe()
         fl = fcntl(r, F_GETFL)
         fcntl(r, F_SETFL, fl | O_NONBLOCK)
         return (r, w)
@@ -75,13 +75,13 @@ class Launchy(Thread):
 
 
         try:
-            self.proc = Popen( 
-                self.command.strip().split(' '), 
-                bufsize = 0, 
-                stdin = None, 
-                stdout = self.w_out, 
+            self.proc = Popen(
+                self.command.strip().split(' '),
+                bufsize = 0,
+                stdin = None,
+                stdout = self.w_out,
                 stderr = self.w_err,
-                close_fds = True, 
+                close_fds = True,
                 preexec_fn = Launchy.__popen_no_signals
             )
             Launchy._processes[self.proc.pid] = self
@@ -99,7 +99,7 @@ class Launchy(Thread):
         stream_err = fdopen(self.r_err)
         while self.up:
             readables, _, _ = select([stream_out, stream_err], [] , [], 0.2)
-            
+
             for readable in readables:
                 data = readable.read()
                 if remainder[readable.fileno()]:
@@ -115,7 +115,7 @@ class Launchy(Thread):
                 h = handler[readable.fileno()]
                 for line in lines:
                     h(line)
-            
+
             if self.shutdown and len(readables) == 0:
                 break
         print "end", self
