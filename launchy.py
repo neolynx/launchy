@@ -1,43 +1,31 @@
-#!/usr/bin/python
-#
-# Launchy - or how to launch subprocesses in python
-#
-# ./launchy.py dmesg
-# ./launchy.py unbuffer dmesg        # with colors
-# ./launchy.py unbuffer dmesg -w     # not terminating
-# ./launchy.py apt-get update -y     # no stdin yet
-# ./launchy.py ls --color /bin /bum  # with stderr
-# ./launchy.py killall rain          # ;-(
-#
-# Andre Roth <neolynx@gmail.com>
-# Sun, 19 Jun 2016 14:05:20 +0200
-#
+#!/usr/bin/env python3
 
-from signal import signal, SIGCHLD
-from threading import Thread
-from subprocess import Popen
-from select import select
-from os import waitpid, fdopen, pipe, setsid, O_NONBLOCK
-from fcntl import fcntl, F_GETFL, F_SETFL
+import asyncio
+from subprocess import PIPE
+from os import setsid, pipe
+import shlex
+from sys import argv
+import signal
+import functools
 
-def child_handler(signum, frame):
-    pid = waitpid(-1, 0)
-    if pid[0] in Launchy._processes:
-        Launchy._processes[pid[0]].terminate(pid[1])
-    else:
-        print "Warning: unknown process died:", pid[0]
 
-signal(SIGCHLD, child_handler)
+class Launchy:
+    _processes = []
 
-class Launchy(Thread):
-    _processes = {}
+    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None):
+        if isinstance(command, list):
+            self.args = command
+            self.command = " ".join(command)
+        else:
+            self.command = command
+            self.args = shlex.split(command)
 
-    def __init__(self, command, out_handler = None, err_handler = None):
-        Thread.__init__(self)
-
-        self.shutdown = False
-        self.command = command
         self.return_code = None
+        self.transport = None
+        self.started = asyncio.Future()
+        self.cmd_done = asyncio.Future()
+        self.terminated = asyncio.Future()
+        self.reading_done = asyncio.Future()
 
         if out_handler:
             self.out_handler = out_handler
@@ -47,137 +35,148 @@ class Launchy(Thread):
             self.err_handler = err_handler
         else:
             self.err_handler = self.__err_handler
+        if on_exit:
+            self.on_exit = on_exit
+        else:
+            self.on_exit = self.__on_exit
 
     def __out_handler(self, line):
-        print "out:", line
+        print("out:", line)
 
     def __err_handler(self, line):
-        print "err:", line
+        print("err:", line)
+
+    async def __on_exit(self, ret):
+        pass
+        # self.err_handler("terminated with %d"%ret)
 
     @classmethod
     def __popen_no_signals(self):
         setsid()
 
-    @classmethod
-    def __mkpipe(self):
-        r, w = pipe()
-        fl = fcntl(r, F_GETFL)
-        fcntl(r, F_SETFL, fl | O_NONBLOCK)
-        return (r, w)
+    @staticmethod
+    def attach_loop(loop):
+        watcher = asyncio.SafeChildWatcher()
+        # FIXME: remove
+        watcher.attach_loop(loop)
+        asyncio.set_child_watcher(watcher)
 
-    def launch(self):
-        print "launch", self, self.command
-        self.up = True
-        self.proc = None
+    async def launch(self):
+        Launchy._processes.append(self)
+        loop = asyncio.get_event_loop()
 
-        self.r_out, self.w_out = self.__mkpipe()
-        self.r_err, self.w_err = self.__mkpipe()
+        class IOProtocol(asyncio.SubprocessProtocol):
+            def __init__(self, launchy):
+                super().__init__()
+                self.launchy = launchy
+                self.remainder = {}
 
-
-        try:
-            self.proc = Popen(
-                self.command.strip().split(' '),
-                bufsize = 0,
-                stdin = None,
-                stdout = self.w_out,
-                stderr = self.w_err,
-                close_fds = True,
-                preexec_fn = Launchy.__popen_no_signals
-            )
-            Launchy._processes[self.proc.pid] = self
-            print "start", self, self.command
-            self.start()
-        except OSError, e:
-            print "%s: %s"%(str(e), self.command.strip())
-
-
-    def run(self):
-        print "run", self, self.command, self.r_out, self.r_err
-        remainder = { self.r_out: "", self.r_err: "" }
-        handler = { self.r_out: self.out_handler, self.r_err: self.err_handler }
-        stream_out = fdopen(self.r_out)
-        stream_err = fdopen(self.r_err)
-        while self.up:
-            readables, _, _ = select([stream_out, stream_err], [] , [], 0.2)
-
-            for readable in readables:
-                data = readable.read()
-                if remainder[readable.fileno()]:
-                    data = remainder[readable.fileno()] + data
-                    remainder[readable.fileno()] = ""
+            def pipe_data_received(self, fd, data):
+                data = data.decode('utf8')
+                if fd not in self.remainder:
+                    self.remainder[fd] = ""
+                if self.remainder[fd]:
+                    data = self.remainder[fd] + data
+                    self.remainder[fd] = ""
                 data = data.replace('\r', '\n')
                 lines = data.split('\n')
                 if lines[-1] == '':
                     lines.pop()
                 else:
-                    remainder[readable.fileno()] = lines.pop()
-
-                h = handler[readable.fileno()]
+                    self.remainder[fd] = lines.pop()
                 for line in lines:
-                    h(line)
+                    if fd == 1:
+                        self.launchy.out_handler(line)
+                    else:
+                        self.launchy.err_handler(line)
 
-            if self.shutdown and len(readables) == 0:
+            def process_exited(self):
+                self.launchy.cmd_done.set_result(True)
+
+            def connection_lost(self, exc):
+                self.launchy.reading_done.set_result(True)
+
+        async def bkg(self):
+            self.transport, protocol = await self.create
+            self.started.set_result(True)
+            await self.reading_done
+            await self.cmd_done
+            Launchy._processes.remove(self)
+            return_code = self.transport.get_returncode()
+            self.transport.close()
+            if self.on_exit:
+                await self.on_exit(return_code)
+            self.terminated.set_result(return_code)
+
+        self.create = loop.subprocess_exec(
+            lambda: IOProtocol(self),
+            *self.args,
+            stdin=None,
+            close_fds=True,
+            preexec_fn=Launchy.__popen_no_signals
+        )
+
+        loop.create_task(bkg(self))
+        await self.started
+
+    async def wait(self):
+        ret = await self.terminated
+        return ret
+
+    def terminate(self):
+        if self.transport:
+            self.transport.terminate()
+        else:
+            self.err_handler("terminate: no transport")
+
+    def kill(self):
+        if self.transport:
+            self.transport.kill()
+        else:
+            self.err_handler("kill: no transport")
+
+    @classmethod
+    async def stop(self):
+        for p in Launchy._processes:
+            self.err_handler("terminating:", p)
+            p.terminate()
+        for i in range(5):
+            if len(Launchy._processes) == 0:
                 break
-        print "end", self
+            await asyncio.sleep(1)
+        for p in Launchy._processes:
+            self.err_handler("kill:", p)
+            p.kill()
+        for i in range(5):
+            if len(Launchy._processes) == 0:
+                break
+            await asyncio.sleep(1)
+        for p in Launchy._processes:
+            self.err_handler("still left:", p)
 
-    def terminate(self, return_code):
-        print "term", self, self.command
-        self.shutdown = True
-        self.return_code = return_code >> 8
-        pass
-
-    def stop(self):
-        if self.proc:
-            self.proc.send_signal(SIGTERM)
-
-    def wait(self):
-        # never use join() without timeout as it blocks signals,
-        # always use this construct:
-        while self.isAlive():
-            self.join(10)
-        return self.return_code
-
-
-#################################################################
-# Usage:
-#
-
-from sys import argv
-from signal import signal, SIGINT, SIGTERM, SIGQUIT
-
-def shutdown_handler(signum, frame):
-    print "\nTerminating..."
-    l.stop()
-
-signal(SIGINT,  shutdown_handler)
-signal(SIGTERM, shutdown_handler)
-signal(SIGQUIT, shutdown_handler)
-
-def my_out(line):
-    print "OUT:", line
-
-def my_err(line):
-    print "ERR:", line
 
 if __name__ == "__main__":
-    if len(argv) > 1:
-        command = " ".join(argv[1:])
-        print "Launching command: %s"%command
-        l = Launchy( command, my_out, my_err )
-        l.launch()
-        ret = l.wait()
-        print "Command returned:", ret
-    else:
-        l = Launchy( "unbuffer dmesg -w" )
-        l.launch()
-        l2 = Launchy( "ls -l --color / /gold" )
-        l2.launch()
-        # cannot use time.sleep, as it is interrupted by the SIGCHLD
-        print "press enter to stop"
-        raw_input()
-        print "ok"
-        l.stop()
-        l.wait()
-        l2.wait()
+    launchy = Launchy(argv[1:])
+    loop = asyncio.get_event_loop()
 
+    up = True
 
+    def sighandler(signame):
+        print("terminating (%s received)" % signame)
+        launchy.terminate()
+        up = False
+
+    for signame in ('SIGINT', 'SIGTERM'):
+        loop.add_signal_handler(getattr(signal, signame), functools.partial(sighandler, signame))
+
+    async def main():
+        await launchy.launch()
+        await launchy.wait()
+        await Launchy.stop()
+
+    try:
+        loop.run_until_complete(main())
+    except Exception as exc:
+        print(exc)
+
+    loop.close()
