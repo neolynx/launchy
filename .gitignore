@@ -1,0 +1,10 @@
+.pybuild/
+debian/.debhelper/
+debian/files
+debian/python3-launchy.debhelper.log
+debian/python3-launchy.postinst.debhelper
+debian/python3-launchy.prerm.debhelper
+debian/python3-launchy.substvars
+debian/python3-launchy/
+launchy.egg-info/
+
