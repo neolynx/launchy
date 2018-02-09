@@ -102,10 +102,20 @@ class Launchy:
                 self.launchy.reading_done.set_result(True)
 
         async def bkg(self):
-            self.transport, protocol = await self.create
+            try:
+                self.transport, protocol = await self.create
+            except Exception as exc:
+                self.err_handler("Error launching process: %s"%self.command)
+                self.err_handler(str(exc))
+                Launchy._processes.remove(self)
+                self.started.set_result(False)
+                self.terminated.set_result(-1)
+                return
+
             self.started.set_result(True)
             await self.reading_done
             await self.cmd_done
+
             Launchy._processes.remove(self)
             return_code = self.transport.get_returncode()
             self.transport.close()
