@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+__all__ = ['Launchy']
+
+# define package metadata
+__VERSION__ = '0.1.0'
+
 import asyncio
 from subprocess import PIPE
 from os import setsid, pipe
@@ -156,15 +161,14 @@ class Launchy:
 
 
 if __name__ == "__main__":
-    launchy = Launchy(argv[1:])
     loop = asyncio.get_event_loop()
+    Launchy.attach_loop(loop)
 
-    up = True
+    launchy = Launchy(argv[1:])
 
     def sighandler(signame):
         print("terminating (%s received)" % signame)
         launchy.terminate()
-        up = False
 
     for signame in ('SIGINT', 'SIGTERM'):
         loop.add_signal_handler(getattr(signal, signame), functools.partial(sighandler, signame))
