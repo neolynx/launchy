@@ -1,3 +1,9 @@
+launchy (0.1.0-1) stretch; urgency=medium
+
+  * bump version 0.1.0-1
+
+ -- Michael Imfeld <michael.imfeld@roche.com>  Mon, 12 Feb 2018 13:01:47 +0100
+
 launchy (0.1.0) stretch; urgency=medium
 
   * debianized
