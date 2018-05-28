@@ -1,3 +1,9 @@
+launchy (0.1.0-2) stretch; urgency=medium
+
+  * Release for 3rdparty-python version 2.0.0-stretch
+
+ -- Timo Furrer <timo.furrer@roche.com>  Mon, 28 May 2018 16:57:33 +0200
+
 launchy (0.1.0-1) stretch; urgency=medium
 
   * bump version 0.1.0-1
