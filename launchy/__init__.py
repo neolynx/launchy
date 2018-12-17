@@ -17,7 +17,7 @@ import functools
 class Launchy:
     _processes = []
 
-    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None):
+    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None, **subprocessargs):
         if isinstance(command, list):
             self.args = command
             self.command = " ".join(command)
@@ -25,6 +25,7 @@ class Launchy:
             self.command = command
             self.args = shlex.split(command)
 
+        self.subprocessargs = subprocessargs
         self.return_code = None
         self.transport = None
         self.started = asyncio.Future()
@@ -128,7 +129,8 @@ class Launchy:
             *self.args,
             stdin=None,
             close_fds=True,
-            preexec_fn=Launchy.__popen_no_signals
+            preexec_fn=Launchy.__popen_no_signals,
+            **self.subprocessargs
         )
 
         loop.create_task(bkg(self))
