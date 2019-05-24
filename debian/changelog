@@ -1,3 +1,9 @@
+launchy (0.1.0-6) stretch; urgency=medium
+
+  * release for 3rdparty-python version stretch9.9
+
+ -- André Roth <andre.roth@roche.com>  Fri, 24 May 2019 19:55:41 +0200
+
 launchy (0.1.0-3) stretch; urgency=medium
 
   * Release for 3rdparty-python version 2.0-stretch
