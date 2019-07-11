@@ -3,11 +3,10 @@
 __all__ = ['Launchy']
 
 # define package metadata
-__VERSION__ = '0.1.0'
+__VERSION__ = '0.2.0'
 
 import asyncio
-from subprocess import PIPE
-from os import setsid, pipe
+from os import setsid
 import shlex
 from sys import argv
 import signal
@@ -46,10 +45,10 @@ class Launchy:
         else:
             self.on_exit = self.__on_exit
 
-    def __out_handler(self, line):
+    async def __out_handler(self, line):
         print("out:", line)
 
-    def __err_handler(self, line):
+    async def __err_handler(self, line):
         print("err:", line)
 
     async def __on_exit(self, ret):
@@ -92,9 +91,9 @@ class Launchy:
                     self.remainder[fd] = lines.pop()
                 for line in lines:
                     if fd == 1:
-                        self.launchy.out_handler(line)
+                        asyncio.gather(self.launchy.out_handler(line))
                     else:
-                        self.launchy.err_handler(line)
+                        asyncio.gather(self.launchy.err_handler(line))
 
             def process_exited(self):
                 self.launchy.cmd_done.set_result(True)
@@ -106,7 +105,7 @@ class Launchy:
             try:
                 self.transport, protocol = await self.create
             except Exception as exc:
-                self.err_handler("Error launching process: %s"%self.command)
+                self.err_handler("Error launching process: %s" % self.command)
                 self.err_handler(str(exc))
                 Launchy._processes.remove(self)
                 self.started.set_result(False)
