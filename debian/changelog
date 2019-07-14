@@ -1,3 +1,10 @@
+launchy (0.2.0) stable; urgency=medium
+
+  * use async stdout/stderr handlers
+  * support subprocess.Popen args
+
+ -- André Roth <neolynx@gmail.com>  Sun, 14 Jul 2019 14:36:26 +0200
+
 launchy (0.1.0) stretch; urgency=medium
 
   * debianized
