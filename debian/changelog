@@ -1,3 +1,9 @@
+launchy (0.2.0.buster) stable; urgency=medium
+
+  * build for buster
+
+ -- André Roth <neolynx@gmail.com>  Sun, 18 Aug 2019 10:56:51 +0200
+
 launchy (0.2.0) stable; urgency=medium
 
   * use async stdout/stderr handlers
