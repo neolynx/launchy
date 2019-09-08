@@ -1,3 +1,9 @@
+launchy (0.2.1) stable; urgency=medium
+
+  * release for stretch and buster
+
+ -- André Roth <neolynx@gmail.com>  Sun, 08 Sep 2019 22:06:36 +0200
+
 launchy (0.2.0.buster) stable; urgency=medium
 
   * build for buster
