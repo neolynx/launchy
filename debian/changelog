@@ -1,3 +1,9 @@
+launchy (0.2.3) stable; urgency=medium
+
+  * build for molior 1.4
+
+ -- André Roth <neolynx@gmail.com>  Tue, 26 May 2020 18:06:23 +0200
+
 launchy (0.2.2) stable; urgency=medium
 
   * build for molior 1.4.0
