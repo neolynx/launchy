@@ -1,3 +1,9 @@
+launchy (0.2.0-roche3) stable; urgency=medium
+
+  * change molior target
+
+ -- Karol Swiderski <karol.swiderski@contractors.roche.com>  Tue, 26 May 2020 17:58:44 +0200
+
 launchy (0.2.0-roche2) stable; urgency=medium
 
   * debian: use source format git
