@@ -1,4 +1,4 @@
 config_version: '1'
 targets:
-  3rdparty-python:
-  - '3-stretch9.9'
+  liat:
+  - 'downgrade-station-20.05'
