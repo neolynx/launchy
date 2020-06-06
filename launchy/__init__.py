@@ -11,6 +11,7 @@ import shlex
 from sys import argv
 import signal
 import functools
+from time import sleep
 
 
 class Launchy:
@@ -101,6 +102,7 @@ class Launchy:
                         asyncio.gather(self.launchy.out_handler(data))
                     else:
                         asyncio.gather(self.launchy.err_handler(data))
+                    sleep(1)
 
             def process_exited(self):
                 self.launchy.cmd_done.set_result(True)
