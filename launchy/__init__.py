@@ -16,7 +16,7 @@ import functools
 class Launchy:
     _processes = []
 
-    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None, **subprocessargs):
+    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None, buffered=True, **subprocessargs):
         if isinstance(command, list):
             self.args = command
             self.command = " ".join(command)
@@ -24,6 +24,7 @@ class Launchy:
             self.command = command
             self.args = shlex.split(command)
 
+        self.buffered = buffered
         self.subprocessargs = subprocessargs
         self.return_code = None
         self.transport = None
@@ -45,11 +46,11 @@ class Launchy:
         else:
             self.on_exit = self.__on_exit
 
-    async def __out_handler(self, line):
-        print("out:", line)
+    async def __out_handler(self, data):
+        print("out:", data)
 
-    async def __err_handler(self, line):
-        print("err:", line)
+    async def __err_handler(self, data):
+        print("err:", data)
 
     async def __on_exit(self, ret):
         pass
@@ -78,22 +79,28 @@ class Launchy:
 
             def pipe_data_received(self, fd, data):
                 data = data.decode('utf8')
-                if fd not in self.remainder:
-                    self.remainder[fd] = ""
-                if self.remainder[fd]:
-                    data = self.remainder[fd] + data
-                    self.remainder[fd] = ""
-                data = data.replace('\r', '\n')
-                lines = data.split('\n')
-                if lines[-1] == '':
-                    lines.pop()
-                else:
-                    self.remainder[fd] = lines.pop()
-                for line in lines:
-                    if fd == 1:
-                        asyncio.gather(self.launchy.out_handler(line))
+                if self.launchy.buffered:
+                    if fd not in self.remainder:
+                        self.remainder[fd] = ""
+                    if self.remainder[fd]:
+                        data = self.remainder[fd] + data
+                        self.remainder[fd] = ""
+                    data = data.replace('\r', '\n')
+                    lines = data.split('\n')
+                    if lines[-1] == '':
+                        lines.pop()
                     else:
-                        asyncio.gather(self.launchy.err_handler(line))
+                        self.remainder[fd] = lines.pop()
+                    for line in lines:
+                        if fd == 1:
+                            asyncio.gather(self.launchy.out_handler(line))
+                        else:
+                            asyncio.gather(self.launchy.err_handler(line))
+                else:  # unbuffered
+                    if fd == 1:
+                        asyncio.gather(self.launchy.out_handler(data))
+                    else:
+                        asyncio.gather(self.launchy.err_handler(data))
 
             def process_exited(self):
                 self.launchy.cmd_done.set_result(True)
