@@ -17,7 +17,7 @@ from time import sleep
 class Launchy:
     _processes = []
 
-    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None, buffered=True, **subprocessargs):
+    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None, buffered=True, collect_time=0, **subprocessargs):
         if isinstance(command, list):
             self.args = command
             self.command = " ".join(command)
@@ -26,6 +26,7 @@ class Launchy:
             self.args = shlex.split(command)
 
         self.buffered = buffered
+        self.collect_time = collect_time
         self.subprocessargs = subprocessargs
         self.return_code = None
         self.transport = None
@@ -102,7 +103,8 @@ class Launchy:
                         asyncio.gather(self.launchy.out_handler(data))
                     else:
                         asyncio.gather(self.launchy.err_handler(data))
-                    sleep(1)
+                    if self.collect_time:
+                        sleep(self.collect_time)
 
             def process_exited(self):
                 self.launchy.cmd_done.set_result(True)
