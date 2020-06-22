@@ -116,8 +116,8 @@ class Launchy:
             try:
                 self.transport, protocol = await self.create
             except Exception as exc:
-                self.err_handler("Error launching process: %s" % self.command)
-                self.err_handler(str(exc))
+                asyncio.gather(self.err_handler("Error launching process: %s" % self.command))
+                asyncio.gather(self.err_handler(str(exc)))
                 Launchy._processes.remove(self)
                 self.started.set_result(False)
                 self.terminated.set_result(-1)
@@ -154,32 +154,28 @@ class Launchy:
         if self.transport:
             self.transport.terminate()
         else:
-            self.err_handler("terminate: no transport")
+            asyncio.gather(self.err_handler("terminate: no transport"))
 
     def kill(self):
         if self.transport:
             self.transport.kill()
         else:
-            self.err_handler("kill: no transport")
+            asyncio.gather(self.err_handler("kill: no transport"))
 
     @classmethod
     async def stop(self):
         for p in Launchy._processes:
-            self.err_handler("terminating:", p)
             p.terminate()
         for i in range(5):
             if len(Launchy._processes) == 0:
                 break
             await asyncio.sleep(1)
         for p in Launchy._processes:
-            self.err_handler("kill:", p)
             p.kill()
         for i in range(5):
             if len(Launchy._processes) == 0:
                 break
             await asyncio.sleep(1)
-        for p in Launchy._processes:
-            self.err_handler("still left:", p)
 
 
 if __name__ == "__main__":
