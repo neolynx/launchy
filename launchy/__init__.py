@@ -103,8 +103,8 @@ class Launchy:
                         asyncio.gather(self.launchy.out_handler(data))
                     else:
                         asyncio.gather(self.launchy.err_handler(data))
-                    if self.collect_time:
-                        sleep(self.collect_time)
+                    if self.launchy.collect_time:
+                        sleep(self.launchy.collect_time)
 
             def process_exited(self):
                 self.launchy.cmd_done.set_result(True)
