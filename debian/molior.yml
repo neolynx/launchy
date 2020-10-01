@@ -2,3 +2,5 @@ config_version: '1'
 targets:
   rlx-candidates:
   - '0.9-10.4-a'
+  molior:
+  - '1.4'
