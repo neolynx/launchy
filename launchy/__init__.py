@@ -95,14 +95,14 @@ class Launchy:
                         self.remainder[fd] = lines.pop()
                     for line in lines:
                         if fd == 1:
-                            asyncio.gather(self.launchy.out_handler(line))
+                            asyncio.run_coroutine_threadsafe(self.launchy.out_handler(line), loop)
                         else:
-                            asyncio.gather(self.launchy.err_handler(line))
+                            asyncio.run_coroutine_threadsafe(self.launchy.err_handler(line), loop)
                 else:  # unbuffered
                     if fd == 1:
-                        asyncio.gather(self.launchy.out_handler(data))
+                        asyncio.run_coroutine_threadsafe(self.launchy.out_handler(data), loop)
                     else:
-                        asyncio.gather(self.launchy.err_handler(data))
+                        asyncio.run_coroutine_threadsafe(self.launchy.err_handler(data), loop)
                     if self.launchy.collect_time:
                         sleep(self.launchy.collect_time)
 
@@ -116,8 +116,8 @@ class Launchy:
             try:
                 self.transport, protocol = await self.create
             except Exception as exc:
-                asyncio.gather(self.err_handler("Error launching process: %s" % self.command))
-                asyncio.gather(self.err_handler(str(exc)))
+                asyncio.run_coroutine_threadsafe(self.err_handler("Error launching process: %s" % self.command), loop)
+                asyncio.run_coroutine_threadsafe(self.err_handler(str(exc)), loop)
                 Launchy._processes.remove(self)
                 self.started.set_result(False)
                 self.terminated.set_result(-1)
@@ -154,13 +154,15 @@ class Launchy:
         if self.transport:
             self.transport.terminate()
         else:
-            asyncio.gather(self.err_handler("terminate: no transport"))
+            loop = asyncio.get_event_loop()
+            asyncio.run_coroutine_threadsafe(self.err_handler("terminate: no transport"), loop)
 
     def kill(self):
         if self.transport:
             self.transport.kill()
         else:
-            asyncio.gather(self.err_handler("kill: no transport"))
+            loop = asyncio.get_event_loop()
+            asyncio.run_coroutine_threadsafe(self.err_handler("kill: no transport"), loop)
 
     @classmethod
     async def stop(self):
