@@ -14,6 +14,14 @@ import functools
 from time import sleep
 
 
+async def queue_reader(queue, handler):
+    while True:
+        line = await queue.get()
+        if line is None:
+            break
+        await handler(line)
+
+
 class Launchy:
     _processes = []
 
@@ -35,6 +43,8 @@ class Launchy:
         self.cmd_done = asyncio.Future()
         self.terminated = asyncio.Future()
         self.reading_done = asyncio.Future()
+        self.stdout_queue = asyncio.Queue()
+        self.stderr_queue = asyncio.Queue()
 
         if out_handler:
             self.out_handler = out_handler
@@ -88,22 +98,24 @@ class Launchy:
                     if self.remainder[fd]:
                         data = self.remainder[fd] + data
                         self.remainder[fd] = ""
-#                    data = data.replace('\r', '\n')
+
                     lines = data.split('\n')
                     if lines[-1] == '':
                         lines.pop()
                     else:
                         self.remainder[fd] = lines.pop()
+
                     for line in lines:
                         if fd == 1:
-                            asyncio.create_task(self.launchy.out_handler(line))
+                            loop.call_soon(self.launchy.stdout_queue.put_nowait, line)
                         else:
-                            asyncio.create_task(self.launchy.err_handler(line))
+                            loop.call_soon(self.launchy.stderr_queue.put_nowait, line)
+
                 else:  # unbuffered
                     if fd == 1:
-                        asyncio.create_task(self.launchy.out_handler(data))
+                        loop.call_soon(self.launchy.stdout_queue.put_nowait, data)
                     else:
-                        asyncio.create_task(self.launchy.err_handler(data))
+                        loop.call_soon(self.launchy.stderr_queue.put_nowait, data)
                     if self.launchy.collect_time:
                         sleep(self.launchy.collect_time)
 
@@ -114,11 +126,14 @@ class Launchy:
                 self.launchy.reading_done.set_result(True)
 
         async def bkg(self):
+            out_task = loop.create_task(queue_reader(self.stdout_queue, self.out_handler))
+            err_task = loop.create_task(queue_reader(self.stderr_queue, self.err_handler))
+
             try:
                 self.transport, protocol = await self.create
             except Exception as exc:
-                asyncio.create_task(self.err_handler("Error launching process: %s" % self.command))
-                asyncio.create_task(self.err_handler(str(exc)))
+                loop.call_soon(self.stderr_queue.put_nowait, "Error launching process: %s" % self.command)
+                loop.call_soon(self.stderr_queue.put_nowait, str(exc))
                 Launchy._processes.remove(self)
                 self.started.set_result(False)
                 self.terminated.set_result(-1)
@@ -127,6 +142,10 @@ class Launchy:
             self.started.set_result(True)
             await self.reading_done
             await self.cmd_done
+            await self.stdout_queue.put(None)
+            await self.stderr_queue.put(None)
+            await out_task
+            await err_task
 
             Launchy._processes.remove(self)
             return_code = self.transport.get_returncode()
@@ -155,13 +174,15 @@ class Launchy:
         if self.transport:
             self.transport.terminate()
         else:
-            asyncio.create_task(self.err_handler("terminate: no transport"))
+            loop = asyncio.get_event_loop()
+            loop.call_soon(self.stderr_queue.put_nowait, "terminate: no transport")
 
     def kill(self):
         if self.transport:
             self.transport.kill()
         else:
-            asyncio.create_task(self.err_handler("kill: no transport"))
+            loop = asyncio.get_event_loop()
+            loop.call_soon(self.stderr_queue.put_nowait, "kill: no transport")
 
     @classmethod
     async def stop(self):
