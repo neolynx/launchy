@@ -17,7 +17,8 @@ from time import sleep
 class Launchy:
     _processes = []
 
-    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None, buffered=True, collect_time=0, **subprocessargs):
+    def __init__(self, command, out_handler=None, err_handler=None, on_exit=None, buffered=True, collect_time=0,
+                 **subprocessargs):
         if isinstance(command, list):
             self.args = command
             self.command = " ".join(command)
@@ -87,7 +88,7 @@ class Launchy:
                     if self.remainder[fd]:
                         data = self.remainder[fd] + data
                         self.remainder[fd] = ""
-                    data = data.replace('\r', '\n')
+#                    data = data.replace('\r', '\n')
                     lines = data.split('\n')
                     if lines[-1] == '':
                         lines.pop()
@@ -95,14 +96,14 @@ class Launchy:
                         self.remainder[fd] = lines.pop()
                     for line in lines:
                         if fd == 1:
-                            asyncio.run_coroutine_threadsafe(self.launchy.out_handler(line), loop)
+                            asyncio.create_task(self.launchy.out_handler(line))
                         else:
-                            asyncio.run_coroutine_threadsafe(self.launchy.err_handler(line), loop)
+                            asyncio.create_task(self.launchy.err_handler(line))
                 else:  # unbuffered
                     if fd == 1:
-                        asyncio.run_coroutine_threadsafe(self.launchy.out_handler(data), loop)
+                        asyncio.asyncio.create_task(self.launchy.out_handler(data))
                     else:
-                        asyncio.run_coroutine_threadsafe(self.launchy.err_handler(data), loop)
+                        asyncio.asyncio.create_task(self.launchy.err_handler(data))
                     if self.launchy.collect_time:
                         sleep(self.launchy.collect_time)
 
@@ -116,8 +117,8 @@ class Launchy:
             try:
                 self.transport, protocol = await self.create
             except Exception as exc:
-                asyncio.run_coroutine_threadsafe(self.err_handler("Error launching process: %s" % self.command), loop)
-                asyncio.run_coroutine_threadsafe(self.err_handler(str(exc)), loop)
+                asyncio.asyncio.create_task(self.err_handler("Error launching process: %s" % self.command))
+                asyncio.asyncio.create_task(self.err_handler(str(exc)))
                 Launchy._processes.remove(self)
                 self.started.set_result(False)
                 self.terminated.set_result(-1)
@@ -154,15 +155,13 @@ class Launchy:
         if self.transport:
             self.transport.terminate()
         else:
-            loop = asyncio.get_event_loop()
-            asyncio.run_coroutine_threadsafe(self.err_handler("terminate: no transport"), loop)
+            asyncio.asyncio.create_task(self.err_handler("terminate: no transport"))
 
     def kill(self):
         if self.transport:
             self.transport.kill()
         else:
-            loop = asyncio.get_event_loop()
-            asyncio.run_coroutine_threadsafe(self.err_handler("kill: no transport"), loop)
+            asyncio.asyncio.create_task(self.err_handler("kill: no transport"))
 
     @classmethod
     async def stop(self):
