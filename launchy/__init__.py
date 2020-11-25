@@ -101,9 +101,9 @@ class Launchy:
                             asyncio.create_task(self.launchy.err_handler(line))
                 else:  # unbuffered
                     if fd == 1:
-                        asyncio.asyncio.create_task(self.launchy.out_handler(data))
+                        asyncio.create_task(self.launchy.out_handler(data))
                     else:
-                        asyncio.asyncio.create_task(self.launchy.err_handler(data))
+                        asyncio.create_task(self.launchy.err_handler(data))
                     if self.launchy.collect_time:
                         sleep(self.launchy.collect_time)
 
@@ -117,8 +117,8 @@ class Launchy:
             try:
                 self.transport, protocol = await self.create
             except Exception as exc:
-                asyncio.asyncio.create_task(self.err_handler("Error launching process: %s" % self.command))
-                asyncio.asyncio.create_task(self.err_handler(str(exc)))
+                asyncio.create_task(self.err_handler("Error launching process: %s" % self.command))
+                asyncio.create_task(self.err_handler(str(exc)))
                 Launchy._processes.remove(self)
                 self.started.set_result(False)
                 self.terminated.set_result(-1)
@@ -155,13 +155,13 @@ class Launchy:
         if self.transport:
             self.transport.terminate()
         else:
-            asyncio.asyncio.create_task(self.err_handler("terminate: no transport"))
+            asyncio.create_task(self.err_handler("terminate: no transport"))
 
     def kill(self):
         if self.transport:
             self.transport.kill()
         else:
-            asyncio.asyncio.create_task(self.err_handler("kill: no transport"))
+            asyncio.create_task(self.err_handler("kill: no transport"))
 
     @classmethod
     async def stop(self):
