@@ -1,3 +1,9 @@
+launchy (0.2.10-roche2) stable; urgency=medium
+
+  * change projectversion
+
+ -- Karol Swiderski <karol.swiderski@contractors.roche.com>  Mon, 22 Feb 2021 16:10:30 +0100
+
 launchy (0.2.10-roche1) stable; urgency=medium
 
   * build for molior 1.4 as well
