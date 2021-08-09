@@ -1,3 +1,9 @@
+launchy (0.2.10-roche3) stable; urgency=medium
+
+  * bump version 0.2.10-roche3
+
+ -- André Roth <neolynx@gmail.com>  Mon, 09 Aug 2021 16:33:43 +0200
+
 launchy (0.2.10-roche2) stable; urgency=medium
 
   * change projectversion
