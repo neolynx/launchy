@@ -1,3 +1,9 @@
+launchy (0.2.0-roche5) stable; urgency=medium
+
+  * bump version 0.2.0-roche5
+
+ -- Simon Rosenberg <tuxrosi@gmail.com>  Thu, 19 Aug 2021 11:31:06 +0200
+
 launchy (0.2.0-roche4) stable; urgency=medium
 
   * bump version 0.2.0-roche4
