@@ -1,0 +1,10 @@
+stages:
+  - molior
+
+molior:
+  stage: molior
+  image: registry.code.roche.com/rlx/ci-image
+  script:
+    - molior-trigger-build
+  only:
+    - tags
