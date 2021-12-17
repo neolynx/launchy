@@ -1,5 +1,4 @@
 config_version: '1'
 targets:
   rlx-candidates:
-  - 10.10-a
-  - 11.0-b
+  - 11.1-a
