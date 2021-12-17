@@ -1,6 +1,4 @@
 config_version: '1'
 targets:
-  3rdparty-python:
-  - 3-stretch9.9
-  rlx-candidates:
-  - 11.0-b
+  rlx:
+  - 11.1-a
