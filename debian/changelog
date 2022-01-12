@@ -1,3 +1,9 @@
+launchy (0.2.10-roche7) stable; urgency=medium
+
+  * bump version 0.2.10-roche7
+
+ -- Simon Rosenberg <simon.rosenberg.sr1@roche.com>  Wed, 12 Jan 2022 15:34:17 +0100
+
 launchy (0.2.10-roche6) stable; urgency=medium
 
   * bump version 0.2.10-roche6
