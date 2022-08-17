@@ -91,7 +91,7 @@ class Launchy:
                 self.remainder = {}
 
             def pipe_data_received(self, fd, data):
-                data = data.decode('utf8')
+                data = data.decode('utf-8', errors='ignore')
                 if self.launchy.buffered:
                     if fd not in self.remainder:
                         self.remainder[fd] = ""
