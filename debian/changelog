@@ -1,3 +1,21 @@
+launchy (0.2.10.1-roche1) stable; urgency=medium
+
+  * Deploy into rlx-candidates/['10.12', '11.3'] only
+  * change molior target
+  * Deploy into rlx-candidates/10.11-a only
+  * Deploy into rlx-candidates/11.2-a only
+  * Deploy into rlx-candidates/11.1-a only
+  * add .gitlab-ci.yml
+  * Add rlx-candidates/11.0-b to molior.yml
+  * update projectversion
+  * change projectversion
+  * build for molior 1.4 as well
+  * build for rlx-candidates
+  * debian: use source format git
+  * ignore utf8 errors
+
+ -- André Roth <neolynx@gmail.com>  Wed, 17 Aug 2022 14:25:25 +0200
+
 launchy (0.2.10.1) stable; urgency=medium
 
   * bump version 0.2.10.1
