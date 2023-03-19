@@ -1,4 +1,4 @@
-config_version: '1'
+config_version: "1"
 targets:
   molior:
-  - '1.4-next'
+  - "1.5"
