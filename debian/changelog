@@ -1,3 +1,10 @@
+launchy (0.2.10.2) stable; urgency=medium
+
+  * ignore utf8 errors
+  * build for 1.5
+
+ -- André Roth <andre.roth@roche.com>  Sun, 19 Mar 2023 19:18:31 +0100
+
 launchy (0.2.10.1) stable; urgency=medium
 
   * bump version 0.2.10.1
